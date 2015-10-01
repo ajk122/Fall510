@@ -1,0 +1,260 @@
+---
+title: "HW4"
+author: "Alissa Klinzmann"
+date: "September 29, 2015"
+output: html_document
+---
+
+
+##1. Create vectors.
+
+###a) (1,2,3,...,19,20).
+```{r}
+
+a <- c(1:20) # Creates vector of integers from 1 to 20
+print(a)
+
+```
+
+###b) (20,19,...,2,1).
+```{r}
+b <- rev(a) # Takes the reverse of a
+print(b)
+
+```
+
+###c) (1,2,3...,19,20,19,...,3,2,1).
+```{r}
+c <- c(a, b[2:20]) # Adds vectors a and b, for b we did not want to repeat the value "20" so using
+                   # brackets can isolate a particular index
+print(c)
+
+```
+
+###d) (4,6,3) and assign to tmp.
+```{r}
+tmp <- c(4,6,3) # Assigns the vector to tmp
+print(tmp)
+
+```
+
+###e) (4,6,3,4,6,3,...,4,6,3) where there are 10 occurences of 4.
+```{r}
+e <- rep(tmp, 10) # Using replicate function for 10 occurences
+print(e)
+
+```
+
+###f) (4,6,3,...,4,6,3,4) where there are 11 occurences of 4, 10 occurences of 6 and 10 occurences of 3.
+```{r}
+f <- rep(tmp, length = 31) # Set the length = 31 such that the last digit in the vector repeated is a 4
+print(f)
+
+```
+
+###g) (4,4,...,4,6,6,...,6,3,3,...,3) where there are 10 occurences of 4, 20 occurences of 6 and 30 occurences of 3.
+```{r}    
+g <- rep(tmp, times = c(10,20,30)) # Multiples the given values in vector by the number defined in                                            "times"
+print(g)
+
+```
+
+
+##2. Create a vector of the values of exp(x)cos(x) = 3, 3.1,3.2,..., 5.9,6.
+```{r}
+
+x <- seq(3, 6, by=.1) # Generates the range of input values with stepsize = 0.1
+v <- exp(x)*cos(x) # Creates the mathematical expression 
+print(v)
+
+```
+
+
+##3. Create vectors.
+
+###a) Vector given in homework.
+```{r}  
+# For this problem, we see that the value of the powers are incremented by 3.
+
+s <- (.1^(seq(3, 36, by=3))) # Generates vector of .1 that lists exponents from 3 to 36 incremented by 3
+t <- (.2^(seq(1, 34, by=3))) # Generates vector of .2 that lists exponents from 1 to 24 incremented by 3
+
+r <- s*t # Multiplies the two vectors together
+print(r)
+
+```
+
+###b) Vector given in homework.
+```{r}
+# For this problem the power is incremented by 1 and then the number is divided by the value of the power.
+
+x <- (1:25) # Generates vector with values 1 to 25
+v <- (2^x)/x # Generates vector with values of form (2^x)/x for values of given x
+print(v)
+
+```
+
+
+##4. Calculate the following.
+
+###a) Summation given in homework.
+```{r}
+i <- (10:100) # Generates vector with values 10 to 100
+j <- sum((i^3) + (4*i^2)) # Uses the sum function to calculate the summation
+print(j)
+
+```
+
+###b) Summation given in homework.
+```{r}
+k <- (1:25) # Generates vector with values 1 to 25
+l <- sum(((2^i)/i) + ((3^i)/i)) # Uses the sum function to calculate the summation
+print(l)
+
+```
+
+
+##5. Use the function paste to create the following character vectors of length 30.
+
+###a) ("label 1", "label 2", ..., "label 30") where there is a single space between label and the number.
+```{r}
+lab = paste("label", 1:30) # Uses the paste function to concatenate the string "label" with the vector
+                           # ranging from 1 to 30
+print(lab)
+
+```
+
+###b) ("fn1", "fn2", ..., "fn30") where there is no space between fn and the number.
+```{r}
+fn = paste("fn", sep="", 1:30) # Again, using paste function, but here define sep="" to ensure there is                                 # no space between the fn and the number
+print(fn)
+
+```
+
+
+##6. Execute the following lines which create two vectors of random integers which are chosen with replacement from the integers 0,1,...,999. Both vectors having length 250.
+
+```{r}
+set.seed(50)
+xVec <- sample(0:999, 250, replace = T)
+yVec <- sample(0:999, 250, replace = T)
+
+# print(xVec)
+# print(yVec)
+
+```
+
+###a) Create the vector given in homework.
+```{r}
+# Create vector (y2 - x1), ..., (yn - x(n-1))
+# Know length of xVec, yVec = 250
+
+newVec <- yVec[2:250] - xVec[1:249] # Defines index for yVec from 2 to 250, and xVec from 1 to 249                                           # and subtracts the two vectors, now with newVec of length 249
+print(newVec)
+
+```
+
+###b) Create the vector given in homework.
+```{r}
+# Create vector (sin(y1)/cos(x2)), ..., (sin(y(n-1))/cos(xn))
+
+newerVec <- sin(yVec[1:249]) / cos(xVec[2:250]) # Defines index yVec from 1 to 249, xVec from 2 to 250
+print(newerVec)
+
+```
+
+###c) Create the vector given in homework.
+```{r}
+# Create vector (x1 + 2x2 - x3, ..., x(n-2) + 2x(n-1) - xn)
+
+vecSum <- xVec[1:248] + 2*xVec[2:249] - xVec[3:250] # Defines the index range accordingingly
+print(vecSum)
+
+```
+
+###d) Calculate the summation given in homework.
+```{r}
+i = (1:249) # Generates vector for the range of the summation
+aSum = sum((exp(xVec)[i+1])/(xVec[i]+10)) # Takes the summation of the given function
+print(aSum)
+
+```
+
+
+##7. This question uses the vectors xVec and yVec creaded in the previous question and the functions sort, order, mean, sqrt, sum and abs.
+
+###a) Pick out values in yVec which are > 600.
+```{r}
+yVec600 <- yVec[yVec > 600] # Finding the values of yVec>600
+print(yVec600)
+
+```
+
+###b) What are the index positions in yVec of the values which are > 600?
+```{r}
+yVecMatch = match(yVec600, yVec) # Returns the matching index positions for the values > 600 in yVec
+print(yVecMatch)
+
+```
+
+###c) What are the values in xVec which correspond to the values in yVec which are > 600? (By correspond, we mean at the same index positions.)
+```{r}
+# To find the values in xVec which correspond to the vlaues in yVec which are > 600.
+
+corrIndex <- xVec[yVecMatch] # To find the values at the index position in xVec that correspond to yVec
+xVec600 <- corrIndex[corrIndex > 600] # Finding the values > 600
+print(xVec600)
+
+```
+
+###d) Create the vector given in homework.
+```{r}
+meanX = mean(xVec) # Uses the mean function to find the mean of xVec
+i = (1:250) # Generates vector with values 1 to 250
+meanVec = abs(xVec[i] - meanX)^.5 # Uses abs function to find the absolute value and raise to .5 power
+print(meanVec)
+
+```
+
+###e) How many values in yVec are within 200 of the maximum value of the terms in yVec?
+```{r}
+yMax = max(yVec) # Uses max function to find the maximum value in yVec
+yVecVal = sum(yVec > yMax-200) # The number of values in yVec that are within 200 of the max value of                                   # yVec
+print(yVecVal)
+
+```
+
+###f) How many numbers in xVec are divisible by 2? (Note: mod operator is %%.)
+```{r}
+# To find how many values in xVec are divisible by 2.
+
+EvenVal = sum(xVec%%2 == 0) # Takes the sum of the mod 2 values that are equal to zero (all the even numbers)
+print(EvenVal)
+
+```
+
+###g) Sort the numbers in xVec in the order of increasing values in yVec.
+```{r}
+xVecOrder = xVec[order(yVec)] # Using the order funtion to sort the xVec in the order of increasing                                    # values of yVect
+print(xVecOrder)
+
+```
+
+###h) Pick out the elements in yVec at index positions 1,4,7,10,13,... . 
+```{r}
+i = seq(1, 250, by = 3) # Creates vector from 1 to 250 incremented by 3
+yVec3 = yVec[i] # Finds 3rd index
+print(yVec3)
+
+```
+
+##8. Calculate by using the function cumprod.
+
+```{r}
+e = seq(2, 38, by = 2) # Creates vector of even numbers form 2 to 38
+o = seq (3, 39, by = 2) # Creates vector of odd numbers from 3 to 39
+
+n = 1+ sum(cumprod(e/o)) # Uses cumprod function to find the cumulative product of even numbers divided                           # by odd numbers
+print (n)
+
+```
