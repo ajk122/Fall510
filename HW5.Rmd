@@ -1,0 +1,218 @@
+---
+title: "HW5"
+author: "Alissa Klinzmann"
+date: "October 6, 2015"
+output: html_document
+---
+
+## Import diamonds data.
+```{r}
+# First, let's import the diamonds data frame:
+
+require(ggplot2)
+require(grid)
+data(diamonds)
+```
+
+
+## 1. Figure out how to generically extract all numeric columns from any data fram so the method you develop can be used on any data.
+```{r}
+
+df <- diamonds # Assigns the variable df to our data frame diamonds. If working with another data frame, reassign df to the data frame at hand.
+
+numb <- sapply(df, is.numeric) 
+# sapply is a built in function that applies a function over a list or a vector. Here we use sappply to apply the function 'is.numeric' over the diamonds data frame. The function is.numeric is a built in function that checks if a value is a number. The data that is numeric is then assigned to the variable, 'numb'.
+
+DF <- df[ , numb] # Pulls all columns from df that are numeric.
+
+```
+
+
+## 2. Create a data frame that contains each pair of variable names in the first column in a single string separated by a -, e.g., for the variables x and y, you should form the string "x-y" and their corresponding Pearson correlation coefficient in the second column. Do not repeat any pairs.
+
+```{r}
+DFname <- names(DF) # Assigns DFname the titled column names from DF for whos values are numeric. 
+
+
+varNames1 <- combn(DFname,2) # Using the built in combn function, creates all possible combinations pairs of our variables from DFname.
+
+
+pasteVarNames1 = paste(varNames1[1, ],varNames1[2, ], sep='-') # Using paste function, we are passing in row 1 and row 2 from varNames and are concatenating the two strings "-" as the separator. This will be the first column in our new data frame.
+
+
+varNames2 <- paste(DFname, DFname, sep="-") # To obtain the pairs "x-x", "y-y", etc since the combn function does not account for forming these combinations.
+
+
+tempCol1 <- as.vector(rbind(pasteVarNames1,varNames2)) # Built in function rbind will merge the two arguments into one vector.
+
+tempCol1 = sort(tempCol1) # Using built in sort function will order the variable pair names alphabetically.
+
+tempCol1 = unique(tempCol1) # Unique function removes all duplicate values.
+
+
+# This is a bit brute force, but I wasn't able to craft a more efficient way. With the sort function Col1 was ordered alphabetically, but the data frame is structured such that columns are ordered ("carat","depth", "table", "price", "x", "y", "z"). So the combinations with "table" come before "price" which is not alphabetical. So I need to reorder these variables such that all will align with the correlation values computed below.
+Col1 = tempCol1 # Assign Col1 to tempCol1 in order to manually manipulate the indexing.
+
+Col1[14] = tempCol1[19] # Replaces this index as "table-table"
+Col1[15] = tempCol1[18] # Replaces this index as "table-price"
+Col1[16:18] = tempCol1[20:22] # Replaces as "table-x", "table-y", "table-z"
+Col1[19:22] = tempCol1[14:17] # Replaces such that the variables that begin with "price-xxx" come after.
+
+
+# Finding the Pearson Correlation Coefficients:
+# The Pearson Correlation Coefficient is a value between -1 to 1. 
+# Coefficient = -1 is total negative correlation.
+# Coefficient = 0 is no correlation.
+# Coefficient = 1 is total positive correlation.
+
+corMatrix = cor(DF) # Cor function generates the correlation coefficients from the data frame with numeric values (found in part 1). By default the method for cor is "pearson" (could also pass the parameter method = "kendall", "speaman" for alternative methods).
+
+
+# To otain the correlation coefficients to put in the second column of our new data frame:
+Col2 <- c() # Initiates empty vector.
+
+# Construct a for loop to iterate through each of the values. For the values in newCorMatrix, we do not want to pull the values of repeated pairs. For the first column, we want to pull all the rows. However, for the second column, we only want to pull rows two to seven, and similarly for the third column we only want rows three to seven, and so on. Hence, we will increment the indexing for the rows accordingly.
+for (i in 1:7){
+    for (v in corMatrix[(i:7),i]){
+    Col2 <- c(Col2, v)}
+}
+
+
+newDF <- data.frame(Variable = Col1, Correlation = Col2) # Defines the new data frame with Col1 and Col2.
+
+
+# print(Col1)
+print(corMatrix)
+print(newDF)
+
+```
+
+
+## 3. Create and label a scatter plot for every pair of numeric variables. Add a title to the plot that contains the calculated Pearson correlation coefficient of variables contained in the plot.
+```{r}
+attach(DF) # Attach allows the variables in the data frame (DF) to be accessed.
+
+# The plot function used below is creates the scatter plots. The first two parameters passed are the variables to be plotted on the x-y coordinates. For these plots, we will pass the parameters for every pair of numeric values, which are obtained from the first column (Col1) of the new data frame (newDF) that was created in part 2. 
+
+# For plot labeling:
+# Define main = "" to create the title. In order to also account for the Pearson correlation coefficient, I used the paste function and called the values of second column (Col2) from newDF, which are the calculated correlation coefficients found in part 2. 
+# For the axis labels, set xlab = "" and ylab = "" . 
+# The plotting character, pch, defines the symbol used. Here I am using pch=19 which is a solid circle.
+
+# Plot 1
+plot(carat, carat, main=(paste("Scatter Plot Carat-Carat with Pearson Correlation Coefficient = ", Col2[1])), xlab="Carat", ylab="Carat", pch=19)
+
+
+# Plot 2
+plot(carat, depth, main=(paste("Scatter Plot Carat-Depth with Pearson Correlation Coefficient = ", Col2[2])), xlab="Carat", ylab="Depth", pch=19)
+
+
+# Plot 3
+plot(carat, price, main=(paste("Scatter Plot Carat-Price with Pearson Correlation Coefficient = ", Col2[3])), xlab="Carat", ylab="Price", pch=19)
+
+
+# Plot 4
+plot(carat, table, main=(paste("Scatter Plot Carat-Table with Pearson Correlation Coefficient = ", Col2[4])), xlab="Carat", ylab="Table", pch=19)
+
+
+# Plot 5
+plot(carat, x, main=(paste("Scatter Plot Carat-X with Pearson Correlation Coefficient = ", Col2[5])), xlab="Carat", ylab="X", pch=19)
+
+
+# Plot 6
+plot(carat, y, main=(paste("Scatter Plot Carat-Y with Pearson Correlation Coefficient = ", Col2[6])), xlab="Carat", ylab="Y", pch=19)
+
+
+# Plot 7
+plot(carat, z, main=(paste("Scatter Plot Carat-Z with Pearson Correlation Coefficient = ", Col2[7])), xlab="Carat", ylab="Z", pch=19)
+
+
+# Plot 8
+plot(depth, depth, main=(paste("Scatter Plot Depth-Depth with Pearson Correlation Coefficient = ", Col2[8])), xlab="Depth", ylab="Depth", pch=19)
+
+
+# Plot 9
+plot(depth, price, main=(paste("Scatter Plot Depth-Price with Pearson Correlation Coefficient = ", Col2[9])), xlab="Depth", ylab="Price", pch=19)
+
+
+# Plot 10
+plot(depth, table, main=(paste("Scatter Plot Depth-Table with Pearson Correlation Coefficient = ", Col2[10])), xlab="Depth", ylab="Table", pch=19)
+
+
+
+# Plot 11
+plot(depth, x, main=(paste("Scatter Plot Depth-X with Pearson Correlation Coefficient = ", Col2[11])), xlab="Depth", ylab="X", pch=19)
+
+
+# Plot 12
+plot(depth, y, main=(paste("Scatter Plot Depth-Y with Pearson Correlation Coefficient = ", Col2[12])), xlab="Depth", ylab="Y", pch=19)
+
+
+# Plot 13
+plot(depth, z, main=(paste("Scatter Plot Depth-Z with Pearson Correlation Coefficient = ", Col2[13])), xlab="Depth", ylab="Z", pch=19)
+
+
+# Plot 14
+plot(table, table, main=(paste("Scatter Plot Table-Table with Pearson Correlation Coefficient = ", Col2[14])), xlab="Table", ylab="Table", pch=19)
+
+
+# Plot 15
+plot(table, price, main=(paste("Scatter Plot Table-Price with Pearson Correlation Coefficient = ", Col2[15])), xlab="Table", ylab="Price", pch=19)
+
+
+# Plot 16
+plot(table, x, main=(paste("Scatter Plot Table-X with Pearson Correlation Coefficient = ", Col2[16])), xlab="Table", ylab="X", pch=19)
+
+
+# Plot 17
+plot(table, y, main=(paste("Scatter Plot Table-Y with Pearson Correlation Coefficient = ", Col2[17])), xlab="Table", ylab="Y", pch=19)
+
+
+# Plot 18
+plot(table, z, main=(paste("Scatter Plot Table-Z with Pearson Correlation Coefficient = ", Col2[18])), xlab="Table", ylab="Z", pch=19)
+
+# Plot 19
+plot(price, price, main=(paste("Scatter Plot Price-Price with Pearson Correlation Coefficient = ", Col2[19])), xlab="Price", ylab="Price", pch=19)
+
+
+# Plot 20
+plot(price, x, main=(paste("Scatter Plot Price-X with Pearson Correlation Coefficient = ", Col2[20])), xlab="Price", ylab="X", pch=19)
+
+
+# Plot 21
+plot(price, y, main=(paste("Scatter Plot Price-Y with Pearson Correlation Coefficient = ", Col2[21])), xlab="Price", ylab="Y", pch=19)
+
+
+# Plot 22
+plot(price, z, main=(paste("Scatter Plot Price-Z with Pearson Correlation Coefficient = ", Col2[22])), xlab="Price", ylab="Z", pch=19)
+
+
+# Plot 23
+plot(x, x, main=(paste("Scatter Plot X-X with Pearson Correlation Coefficient = ", Col2[23])), xlab="X", ylab="X", pch=19)
+
+
+# Plot 24
+plot(x, y, main=(paste("Scatter Plot X-Y with Pearson Correlation Coefficient = ", Col2[24])), xlab="X", ylab="y", pch=19)
+
+
+# Plot 25
+plot(x, z, main=(paste("Scatter Plot X-Z with Pearson Correlation Coefficient = ", Col2[25])), xlab="X", ylab="Z", pch=19)
+
+
+# Plot 26
+plot(y, y, main=(paste("Scatter Plot Y-Y with Pearson Correlation Coefficient = ", Col2[26])), xlab="Y", ylab="Y", pch=19)
+
+
+# Plot 27
+plot(y, z, main=(paste("Scatter Plot Y-Z with Pearson Correlation Coefficient = ", Col2[27])), xlab="Y", ylab="Z", pch=19)
+
+
+# Plot 28
+plot(z, z, main=(paste("Scatter Plot Z-Z with Pearson Correlation Coefficient = ", Col2[28])), xlab="Z", ylab="Z", pch=19)
+
+
+# General overiew of all the data
+plot (newDF, main = "Overview of All Variable Pairs")
+
+
+```
