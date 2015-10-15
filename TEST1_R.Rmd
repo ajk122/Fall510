@@ -1,0 +1,99 @@
+---
+title: "TEST1_R"
+author: "Alissa Klinzmann"
+date: "October 8, 2015"
+output: html_document
+---
+
+## Import the data frames.
+```{r}
+
+# First import data frames for diamonds and mtcars
+require(ggplot2)
+require(grid)
+data(diamonds)
+data(mtcars)
+```
+
+## 1. Add a logical column to diamonds based on the ratio of 1's and 0's in the mtcars$vs. The variable in mtcars is numeric meaning that you will need to create a logical equivalent, extend it to the same length as diamonds and add it to the diamonds data frame.
+
+```{r}
+
+names(mtcars) # Shows the names in mtcars.
+vs <-  mtcars[,c("vs")] # Pulls and assigns the column vector "vs" from empty cars to variable vs.
+lenVs <- length(vs) # Finds the length of vs -- to use for the ratio.
+lenOnesVs <- length(vs[vs == 1]) # Finds the length of the amount of 1's in vs. 
+ratio1 <- lenOnesVs/lenVs # Finds ratio of 1's.
+ratio0 <- (lenVs - lenOnesVs)/lenVs # Finds ratio of 0's.
+
+# To extend the ratio to diamonds.
+rowsDia <- nrow(diamonds) # Gives the number of rows in diamonds.
+ratio1Dia <- round(ratio1*rowsDia) # Gives the ratio of rounded number of 1's that should be in diamonds.
+ratio0Dia <- round(ratio0*rowsDia) # Gives the ratio of rounded number of 0's that should be in diamonds.
+
+# Making logical vectors:
+ones <- as.logical(rep(c(1), ratio1Dia)) # Creates a vector of 1's of size ratio1Dia; as.logical function converts the 1's to logical = True.
+zeros <- as.logical(rep(c(0), ratio0Dia)) # Creates a vector of 0's of size ratio0Dia; as.logical function converts the 0's to logical = False.
+
+# Create new logical column to add to diamonds df: 
+newCol <- c(ones, zeros) # Creates the new column vector from the logical vectors: "ones" & "zeros"
+diamonds$logicalCol <- newCol # Adds newCol to diamonds df.
+# str(diamonds)
+
+```
+
+## 2. Figure out how to generically extract all factor and logical columns from any data frame so the method you devolop can be used on any data.
+```{r}
+df <- diamonds # Assigns the variable df to the diamonds data frame. To use this code in general on any data frame, replace "diamonds" with the name of another data frame.
+
+logic <- sapply(df, is.logical) # Built in sapply function applies a function over a list or a vector. Here we use sappply to apply the function 'is.logical' over the data frame. The function is.logical is a built in function that checks if a value is a logical.
+
+fact <- sapply(df, is.factor) # Built in sapply function applies a function over a list or a vector. Here we use sappply to apply the function 'is.factor' over the data frame. The function is.factor is a built in function that checks if a value is a factor.
+
+dfLogic <- df[ , logic] # Pulls all columns from data frame that are logical.
+dfFact <- df [ , fact] # Pulls all columns from data frame that are factor.
+
+```
+
+## 3. Plot a gray bar graph for every factor and logical variable.
+```{r}
+# Plotting gray bar graph for factors:
+# For loop created to iterate through all columns from dfFact in #2 and will output gray bar graphs. 
+for (i in 1:length(dfFact)){
+  factorPlot <- plot(dfFact[i], main = paste("Bar graph of", names(dfFact[i])), xlab = paste("x-axis =", names(dfFact[i]))) # Using the paste function to have the appropriate title & xlab names for graphs generated in for loop.
+  print(factorPlot)
+  
+}
+
+# Plotting gray bargraph for logical:
+# plot(dfLogic,1:length(dfLogic), col="gray") # 1:length(dfLogic) defines values along the x-axis. This plot, however, doesn't make too much sense. It is showing for which values of the index are 0 and which values of the index are 1. Since the locical column was created as an extension of the ratio in mtcars, the logical column isn't qualifying any particular characteristic of that given index since the ratio was assigned arbitrarily.
+
+# Rather, I think it is more logical to view the logical column as a histogram. This will show the frequency of True and False in the data frame. 
+colors <- c("gray") # Assigns gray to the color vector to be used in the hist plot. 
+logicGraph <- hist(as.numeric(dfLogic), col=colors, main = "Histogram of Logical Data", xlab = "False = 0, True = 1") # Hist takes in numeric values, so using as.numeric to convert dfLogic.
+
+print(logicGraph)
+
+```
+
+## 4. Create a list of frequency tables that contains one table for each categorical and locical variable in the data frame.
+```{r}
+# Frequency table for categorical data:
+freqFact <- list() # Initializes empty list
+
+# For loop to iterate through all values in dfFact and will append to freqFact.
+for (i in 1:length(dfFact)){
+  freqFact[[i]] <- table(dfFact[i]) # The table function is used to find the count of the frequency of occurrences.
+}
+
+# Frequency table for logical data:
+freqLogic <- list(table(dfLogic)) # Creates a list with the frequency table of dfLogic.
+
+# Combining the frequency tables of the factors and logical into one list:
+freqList <- list(freqFact, freqLogic)
+
+print(freqList)
+
+```
+
+
