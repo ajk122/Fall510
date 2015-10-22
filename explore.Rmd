@@ -1,0 +1,655 @@
+---
+title: "explore"
+author: "Alissa Klinzmann"
+date: "October 20, 2015"
+output: html_document
+---
+
+```{r}
+
+# Sources for the code below include:
+# R_ggplot.rmd (Math 510 document)
+# R_Data_Analysis.rmd (Math 510 document)
+# FreqsAndCorrs.R (Math 510 document)
+
+```
+
+
+```{r}
+
+explore <- function(df, binsize, corr_thresh){
+  # Input parameters:
+  # df = data frame
+  # binsize = vector of bin sizes
+  # corr = correlation threshold
+  
+    
+  # Pulling variables from df:
+  var_num <- df[which(lapply(df, is.numeric) == TRUE)] # Pulls all numeric variables.
+  var_factor <- df[which(lapply(df, is.factor) == TRUE)] # Pulls all factor variables.
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)] # Pulls all logical variables.
+  
+
+  # 1. Plot a pair of blue histograms with a vertical red line at the mean (using counts and density) for every numerical variable at each bin size specified in ht ebin sizes input parameter. 
+  
+  # Create nested for loop to iterate over all variables, bin sizes and mean line:
+  for (i in 1:length(var_num)) # Iterates over all indeces of var_num.
+  {
+    for (bins in 1:length(binsize)) # Nested for loop to also iterate over all indeces in binsize.
+    {
+      # Calculating the bin size:
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      
+      # Calculating the mean and label:
+      col_mean <- mean(var_num[[i]]) # Calulates the mean for each column in var_num
+      mean_Label = sprintf("%8.2f ", col_mean) # Function sprintf returns a character vector.
+      
+      # Plotting the count histogram:
+      Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                         environment = environment())
+      # Adding the vertical red line at the mean to the count histogram:
+      Num_Plot <- Num_Plot +
+        geom_histogram(colour = 'black',
+                       fill = 'blue',
+                       binwidth=num_bins) +
+        labs(x=names(var_num)[[i]]) +
+        geom_vline(xintercept=col_mean, colour='red') +
+        annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+      print(Num_Plot)
+      
+      # Plotting the denisty histogram:
+       Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                          environment = environment())
+       # Adding the vertical red line at the mean to the density histogram:
+       Num_Plot <- Num_Plot + aes(y=..density..) + labs(y="Density") +
+         geom_histogram(colour = 'black',
+                      fill = 'blue',
+                        binwidth=num_bins) +
+         labs(x=names(var_num)[[i]]) +
+         geom_vline(xintercept=col_mean, colour='red') +
+         annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+       print(Num_Plot)
+    } 
+  }
+
+
+
+  # 2. Plot gray bar graph for every categorical and binary value:
+  
+  # Will use 'var_factor' as this is the assigned variable for factor data.
+  
+  # Create for loop to iterate over all factor variables:
+  if (length(var_factor > 0)) # Put in if statement in case there are no factor variable in df.
+  {
+    for (i in 1:length(var_factor)) # Iterates over all indeces of var_factor.
+    {
+      Fact_Plot <- ggplot(var_factor[i], aes(x=var_factor[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", color="black") + labs(x=names(var_factor)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  } else {
+    print ("No factor variables in data frame.")
+  }
+
+  
+  # Pulling the logical variables from the df:
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)]
+  
+  # Create for loop to iterate over all logical variables:
+  if (length(var_logical) >0) # Put in if statement in case there are no logical variables in df.
+  {
+    for (i in 1:length(var_logical)) # Iterates over all indeces of var_logical.
+      {
+      Fact_Plot <- ggplot(var_logical[i], aes(x=var_logical[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", colour="black") + labs(x=names(var_logical)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  }else {
+    print ("No logical variables in data frame.")
+  }
+
+
+  # 3. Calculate the r-square value of every pair of numerical variable:
+  
+  # Creating correlation matrix using cor function with Pearson method:
+  corr_a <- cor(var_num, method="pearson")
+
+  
+  # Set up correlation threshold and null vectors before entering loop
+  threshold <- corr_thresh # Assigns threshold to input parameter, "corr_thresh".
+  r_square <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  rsq_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_list <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  
+  # Find the length of the one dimension of the square matrix:
+  len <- length(corr_a[1,])
+  
+  # Only loop through the upper right triangle of correlation matrix to not repeat pairs.
+  for (i in (1:(len-1))) 
+    {
+    for (j in ((i+1):len)) 
+      {
+      # Form the name pair and add to the named pair vector
+      pair_name <- paste(names(corr_a[,1])[[i]],names(corr_a[1,])[[j]],sep="-") # Using paste function to combine the name of the first row with the name of the second column.
+      rsq_names <- c(rsq_names, pair_name)
+      
+      # Add the r_square value to the value vector
+      r_square <- c(r_square, corr_a[i,j]^2) # Taking the square of the correlation coeff.
+      
+      # Comparing to the threshold - if exceeded, add the name and value to the correlation vectors.
+      if (corr_a[i,j] > threshold) 
+        {
+        corr_names <- c(corr_names, pair_name) # Adding pair_names to the corr_names vector.
+        corr_list <- c(corr_list, corr_a[i,j]) # Adding corr_a value to corr_list vector.
+      }
+    }
+    
+  }
+  
+  
+  
+  # 4. Returning data in a list:
+  
+  # a. A frequency table for every categorical and binary data.
+  
+  # Creating for factor variable:
+  if (length(var_factor) >0) # Put in if statement incase there are no factor variables in df.
+    {
+    freq_factor <- list() # Initialize empty list.
+  
+    # Create for loop to create frequency table of factor variables.
+    for (i in (1:length(var_factor))) # Iterates for all indeces of var_factor.
+      {
+        freq_factor[[i]] <- table(var_factor[i]) # Appends table to freq_factor.
+    }
+    print(freq_factor)
+  } else {
+    print ("No factor variables in data frame.")
+  }
+  
+  #Creating for logical variable:
+  if (length(var_logical) >0) # Put in if statement incase there are no logical variables in df.
+  {
+    freq_logical <- list() # Initialize empty list.
+  
+    for (i in (1:length(var_logical))) # Iterates for all indeces of var_logical.
+      {
+        freq_logical[[i]] <- table(var_logical[i]) # Appends table to freq_logical.
+    }
+    print(freq_logical)
+  } else {
+    print ("No logical variables in data frame.")
+  }
+  
+  # b. For numerical variables:
+  
+  # i. A summary statistics table for each numerical variable:
+  rsq_corr_list <- list("rsquare"=rsq_df, "correlation"=corr_df)
+  print(rsq_corr_list)
+  
+  
+  # ii. A data frame that contains each pair of variable names and the associated r-square values.
+  
+  # Create the dataframes and label the columns:
+  rsq_df <- data.frame(cbind(rsq_names, r_square)) # Function cbind combines rsq_names and r_square respectively.
+  names(rsq_df)[1] <- "Pair"
+  names(rsq_df)[2] <- "Value"
+  print(rsq_df)
+  
+  
+  # iii. A data frame that contains each pair of variable names and correlation coefficient (Pearson) for all coefficients whose absolute value is greater than the correlation threshold.
+  corr_df <- data.frame(cbind(corr_names, corr_list)) # Function cbind combines corr_names and corr_list respectively.
+  names(corr_df)[1] <- "Pair"
+  names(corr_df)[2] <- "Value"
+  print(corr_df)
+  
+   
+}
+
+```
+
+
+
+
+```{r}
+# 5. Testing explore function on extended diamonds data frame with logical column, a vector of bin sizes (5, 20, 50), and a correlation threshold of 0.25. Also test on mtcars.
+
+# First import data frames for diamonds and mtcars to use as test data frames.
+require(ggplot2)
+require(grid)
+require(scales)
+data(diamonds)
+data(mtcars)
+
+
+# Code from Test1 to create the diamonds dataframe with logical column.
+names(mtcars) # Shows the names in mtcars.
+vs <-  mtcars[,c("vs")] # Pulls and assigns the column vector "vs" from empty cars to variable vs.
+lenVs <- length(vs) # Finds the length of vs -- to use for the ratio.
+lenOnesVs <- length(vs[vs == 1]) # Finds the length of the amount of 1's in vs. 
+ratio1 <- lenOnesVs/lenVs # Finds ratio of 1's.
+ratio0 <- (lenVs - lenOnesVs)/lenVs # Finds ratio of 0's.
+
+# To extend the ratio to diamonds.
+rowsDia <- nrow(diamonds) # Gives the number of rows in diamonds.
+ratio1Dia <- round(ratio1*rowsDia) # Gives the ratio of rounded number of 1's that should be in diamonds.
+ratio0Dia <- round(ratio0*rowsDia) # Gives the ratio of rounded number of 0's that should be in diamonds.
+
+# Making logical vectors:
+ones <- as.logical(rep(c(1), ratio1Dia)) # Creates a vector of 1's of size ratio1Dia; as.logical function converts the 1's to logical = True.
+zeros <- as.logical(rep(c(0), ratio0Dia)) # Creates a vector of 0's of size ratio0Dia; as.logical function converts the 0's to logical = False.
+
+# Create new logical column to add to diamonds df: 
+newCol <- c(ones, zeros) # Creates the new column vector from the logical vectors: "ones" & "zeros"
+diamonds$logicalCol <- newCol # Adds newCol to diamonds df.
+# str(diamonds)
+
+```
+
+
+
+```{r}
+# Testing diamonds data frame:
+# Code below is the copied script from "explore" with the input parameters hard-coded. 
+# Passing the function explore(diamonds, c(5, 20, 50), 0.25) would return error:
+" Error in eval(expr, envir, enclos) : object 'var_factor' not found"
+
+# I was not able to resolve this issue. However, code executes when running the script with the input parameters defined at the start.
+
+df <- diamonds
+binsize <- c(5, 20, 50)
+corr_thresh <- 0.25
+
+  # Pulling variables from df:
+  var_num <- df[which(lapply(df, is.numeric) == TRUE)] # Pulls all numeric variables.
+  var_factor <- df[which(lapply(df, is.factor) == TRUE)] # Pulls all factor variables.
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)] # Pulls all logical variables.
+  
+
+  # 1. Plot a pair of blue histograms with a vertical red line at the mean (using counts and density) for every numerical variable at each bin size specified in ht ebin sizes input parameter. 
+  
+  # Create nested for loop to iterate over all variables, bin sizes and mean line:
+  for (i in 1:length(var_num)) # Iterates over all indeces of var_num.
+  {
+    for (bins in 1:length(binsize)) # Nested for loop to also iterate over all indeces in binsize.
+    {
+      # Calculating the bin size:
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      
+      # Calculating the mean and label:
+      col_mean <- mean(var_num[[i]]) # Calulates the mean for each column in var_num
+      mean_Label = sprintf("%8.2f ", col_mean) # Function sprintf returns a character vector.
+      
+      # Plotting the count histogram:
+      Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                         environment = environment())
+      # Adding the vertical red line at the mean to the count histogram:
+      Num_Plot <- Num_Plot +
+        geom_histogram(colour = 'black',
+                       fill = 'blue',
+                       binwidth=num_bins) +
+        labs(x=names(var_num)[[i]]) +
+        geom_vline(xintercept=col_mean, colour='red') +
+        annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+      print(Num_Plot)
+      
+      # Plotting the denisty histogram:
+       Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                          environment = environment())
+       # Adding the vertical red line at the mean to the density histogram:
+       Num_Plot <- Num_Plot + aes(y=..density..) + labs(y="Density") +
+         geom_histogram(colour = 'black',
+                      fill = 'blue',
+                        binwidth=num_bins) +
+         labs(x=names(var_num)[[i]]) +
+         geom_vline(xintercept=col_mean, colour='red') +
+         annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+       print(Num_Plot)
+    } 
+  }
+
+
+
+  # 2. Plot gray bar graph for every categorical and binary value:
+  
+  # Will use 'var_factor' as this is the assigned variable for factor data.
+  
+  # Create for loop to iterate over all factor variables:
+  if (length(var_factor > 0)) # Put in if statement in case there are no factor variable in df.
+  {
+    for (i in 1:length(var_factor)) # Iterates over all indeces of var_factor.
+    {
+      Fact_Plot <- ggplot(var_factor[i], aes(x=var_factor[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", color="black") + labs(x=names(var_factor)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  } else {
+    print ("No factor variables in data frame.")
+  }
+
+  
+  # Pulling the logical variables from the df:
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)]
+  
+  # Create for loop to iterate over all logical variables:
+  if (length(var_logical) >0) # Put in if statement in case there are no logical variables in df.
+  {
+    for (i in 1:length(var_logical)) # Iterates over all indeces of var_logical.
+      {
+      Fact_Plot <- ggplot(var_logical[i], aes(x=var_logical[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", colour="black") + labs(x=names(var_logical)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  }else {
+    print ("No logical variables in data frame.")
+  }
+
+
+  # 3. Calculate the r-square value of every pair of numerical variable:
+  
+  # Creating correlation matrix using cor function with Pearson method:
+  corr_a <- cor(var_num, method="pearson")
+
+  
+  # Set up correlation threshold and null vectors before entering loop
+  threshold <- corr_thresh # Assigns threshold to input parameter, "corr_thresh".
+  r_square <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  rsq_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_list <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  
+  # Find the length of the one dimension of the square matrix:
+  len <- length(corr_a[1,])
+  
+  # Only loop through the upper right triangle of correlation matrix to not repeat pairs.
+  for (i in (1:(len-1))) 
+    {
+    for (j in ((i+1):len)) 
+      {
+      # Form the name pair and add to the named pair vector
+      pair_name <- paste(names(corr_a[,1])[[i]],names(corr_a[1,])[[j]],sep="-") # Using paste function to combine the name of the first row with the name of the second column.
+      rsq_names <- c(rsq_names, pair_name)
+      
+      # Add the r_square value to the value vector
+      r_square <- c(r_square, corr_a[i,j]^2) # Taking the square of the correlation coeff.
+      
+      # Comparing to the threshold - if exceeded, add the name and value to the correlation vectors.
+      if (corr_a[i,j] > threshold) 
+        {
+        corr_names <- c(corr_names, pair_name) # Adding pair_names to the corr_names vector.
+        corr_list <- c(corr_list, corr_a[i,j]) # Adding corr_a value to corr_list vector.
+      }
+    }
+    
+  }
+  
+  
+  
+  # 4. Returning data in a list:
+  
+  # a. A frequency table for every categorical and binary data.
+  
+  # Creating for factor variable:
+  if (length(var_factor) >0) # Put in if statement incase there are no factor variables in df.
+    {
+    freq_factor <- list() # Initialize empty list.
+  
+    # Create for loop to create frequency table of factor variables.
+    for (i in (1:length(var_factor))) # Iterates for all indeces of var_factor.
+      {
+        freq_factor[[i]] <- table(var_factor[i]) # Appends table to freq_factor.
+    }
+    print(freq_factor)
+  } else {
+    print ("No factor variables in data frame.")
+  }
+  
+  #Creating for logical variable:
+  if (length(var_logical) >0) # Put in if statement incase there are no logical variables in df.
+  {
+    freq_logical <- list() # Initialize empty list.
+  
+    for (i in (1:length(var_logical))) # Iterates for all indeces of var_logical.
+      {
+        freq_logical[[i]] <- table(var_logical[i]) # Appends table to freq_logical.
+    }
+    print(freq_logical)
+  } else {
+    print ("No logical variables in data frame.")
+  }
+  
+  # b. For numerical variables:
+  
+  # i. A summary statistics table for each numerical variable:
+  rsq_corr_list <- list("rsquare"=rsq_df, "correlation"=corr_df)
+  print(rsq_corr_list)
+  
+  
+  # ii. A data frame that contains each pair of variable names and the associated r-square values.
+  
+  # Create the dataframes and label the columns:
+  rsq_df <- data.frame(cbind(rsq_names, r_square)) # Function cbind combines rsq_names and r_square respectively.
+  names(rsq_df)[1] <- "Pair"
+  names(rsq_df)[2] <- "Value"
+  print(rsq_df)
+  
+  
+  # iii. A data frame that contains each pair of variable names and correlation coefficient (Pearson) for all coefficients whose absolute value is greater than the correlation threshold.
+  corr_df <- data.frame(cbind(corr_names, corr_list)) # Function cbind combines corr_names and corr_list respectively.
+  names(corr_df)[1] <- "Pair"
+  names(corr_df)[2] <- "Value"
+  print(corr_df)
+
+```
+
+
+
+```{r}
+# Testing mtcars data frame:
+# Code below is the copied script from "explore" with the input parameters hard-coded. 
+# Passing the function explore(mtcars, c(5, 20, 50), 0.25) would return an error.
+
+# I was not able to resolve this issue. However, code executes when running the script with the input parameters defined at the start.
+
+df <- mtcars
+binsize <- c(5, 20, 50)
+corr_thresh <- 0.25
+
+  # Pulling variables from df:
+  var_num <- df[which(lapply(df, is.numeric) == TRUE)] # Pulls all numeric variables.
+  var_factor <- df[which(lapply(df, is.factor) == TRUE)] # Pulls all factor variables.
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)] # Pulls all logical variables.
+  
+
+  # 1. Plot a pair of blue histograms with a vertical red line at the mean (using counts and density) for every numerical variable at each bin size specified in ht ebin sizes input parameter. 
+  
+  # Create nested for loop to iterate over all variables, bin sizes and mean line:
+  for (i in 1:length(var_num)) # Iterates over all indeces of var_num.
+  {
+    for (bins in 1:length(binsize)) # Nested for loop to also iterate over all indeces in binsize.
+    {
+      # Calculating the bin size:
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      num_bins <- (max(var_num[[i]])-min(var_num[[i]]))/binsize[bins]
+      
+      # Calculating the mean and label:
+      col_mean <- mean(var_num[[i]]) # Calulates the mean for each column in var_num
+      mean_Label = sprintf("%8.2f ", col_mean) # Function sprintf returns a character vector.
+      
+      # Plotting the count histogram:
+      Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                         environment = environment())
+      # Adding the vertical red line at the mean to the count histogram:
+      Num_Plot <- Num_Plot +
+        geom_histogram(colour = 'black',
+                       fill = 'blue',
+                       binwidth=num_bins) +
+        labs(x=names(var_num)[[i]]) +
+        geom_vline(xintercept=col_mean, colour='red') +
+        annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+      print(Num_Plot)
+      
+      # Plotting the denisty histogram:
+       Num_Plot <- ggplot(var_num, aes(x=var_num[[i]]),
+                          environment = environment())
+       # Adding the vertical red line at the mean to the density histogram:
+       Num_Plot <- Num_Plot + aes(y=..density..) + labs(y="Density") +
+         geom_histogram(colour = 'black',
+                      fill = 'blue',
+                        binwidth=num_bins) +
+         labs(x=names(var_num)[[i]]) +
+         geom_vline(xintercept=col_mean, colour='red') +
+         annotate("text",x=col_mean,y=0,label=mean_Label,hjust=0)
+       print(Num_Plot)
+    } 
+  }
+
+
+
+  # 2. Plot gray bar graph for every categorical and binary value:
+  
+  # Will use 'var_factor' as this is the assigned variable for factor data.
+  
+  # Create for loop to iterate over all factor variables:
+  if (length(var_factor > 0)) # Put in if statement in case there are no factor variable in df.
+  {
+    for (i in 1:length(var_factor)) # Iterates over all indeces of var_factor.
+    {
+      Fact_Plot <- ggplot(var_factor[i], aes(x=var_factor[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", color="black") + labs(x=names(var_factor)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  } else {
+    print ("No factor variables in data frame.")
+  }
+
+  
+  # Pulling the logical variables from the df:
+  var_logical <- df[which(lapply(df, is.logical) == TRUE)]
+  
+  # Create for loop to iterate over all logical variables:
+  if (length(var_logical) >0) # Put in if statement in case there are no logical variables in df.
+  {
+    for (i in 1:length(var_logical)) # Iterates over all indeces of var_logical.
+      {
+      Fact_Plot <- ggplot(var_logical[i], aes(x=var_logical[[i]]))
+      Fact_Plot <- Fact_Plot + geom_bar(fill="gray", colour="black") + labs(x=names(var_logical)[i])
+      print(Fact_Plot)
+      
+    }
+    
+  }else {
+    print ("No logical variables in data frame.")
+  }
+
+
+  # 3. Calculate the r-square value of every pair of numerical variable:
+  
+  # Creating correlation matrix using cor function with Pearson method:
+  corr_a <- cor(var_num, method="pearson")
+
+  
+  # Set up correlation threshold and null vectors before entering loop
+  threshold <- corr_thresh # Assigns threshold to input parameter, "corr_thresh".
+  r_square <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  rsq_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_list <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  corr_names <- NULL # Assigns NULL value to ensure an empty variable before assigning in loop.
+  
+  # Find the length of the one dimension of the square matrix:
+  len <- length(corr_a[1,])
+  
+  # Only loop through the upper right triangle of correlation matrix to not repeat pairs.
+  for (i in (1:(len-1))) 
+    {
+    for (j in ((i+1):len)) 
+      {
+      # Form the name pair and add to the named pair vector
+      pair_name <- paste(names(corr_a[,1])[[i]],names(corr_a[1,])[[j]],sep="-") # Using paste function to combine the name of the first row with the name of the second column.
+      rsq_names <- c(rsq_names, pair_name)
+      
+      # Add the r_square value to the value vector
+      r_square <- c(r_square, corr_a[i,j]^2) # Taking the square of the correlation coeff.
+      
+      # Comparing to the threshold - if exceeded, add the name and value to the correlation vectors.
+      if (corr_a[i,j] > threshold) 
+        {
+        corr_names <- c(corr_names, pair_name) # Adding pair_names to the corr_names vector.
+        corr_list <- c(corr_list, corr_a[i,j]) # Adding corr_a value to corr_list vector.
+      }
+    }
+    
+  }
+  
+  
+  
+  # 4. Returning data in a list:
+  
+  # a. A frequency table for every categorical and binary data.
+  
+  # Creating for factor variable:
+  if (length(var_factor) >0) # Put in if statement incase there are no factor variables in df.
+    {
+    freq_factor <- list() # Initialize empty list.
+  
+    # Create for loop to create frequency table of factor variables.
+    for (i in (1:length(var_factor))) # Iterates for all indeces of var_factor.
+      {
+        freq_factor[[i]] <- table(var_factor[i]) # Appends table to freq_factor.
+    }
+    print(freq_factor)
+  } else {
+    print ("No factor variables in data frame.")
+  }
+  
+  #Creating for logical variable:
+  if (length(var_logical) >0) # Put in if statement incase there are no logical variables in df.
+  {
+    freq_logical <- list() # Initialize empty list.
+  
+    for (i in (1:length(var_logical))) # Iterates for all indeces of var_logical.
+      {
+        freq_logical[[i]] <- table(var_logical[i]) # Appends table to freq_logical.
+    }
+    print(freq_logical)
+  } else {
+    print ("No logical variables in data frame.")
+  }
+  
+  # b. For numerical variables:
+  
+  # i. A summary statistics table for each numerical variable:
+  rsq_corr_list <- list("rsquare"=rsq_df, "correlation"=corr_df)
+  print(rsq_corr_list)
+  
+  
+  # ii. A data frame that contains each pair of variable names and the associated r-square values.
+  
+  # Create the dataframes and label the columns:
+  rsq_df <- data.frame(cbind(rsq_names, r_square)) # Function cbind combines rsq_names and r_square respectively.
+  names(rsq_df)[1] <- "Pair"
+  names(rsq_df)[2] <- "Value"
+  print(rsq_df)
+  
+  
+  # iii. A data frame that contains each pair of variable names and correlation coefficient (Pearson) for all coefficients whose absolute value is greater than the correlation threshold.
+  corr_df <- data.frame(cbind(corr_names, corr_list)) # Function cbind combines corr_names and corr_list respectively.
+  names(corr_df)[1] <- "Pair"
+  names(corr_df)[2] <- "Value"
+  print(corr_df)
+
+```
+
