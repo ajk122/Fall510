@@ -1,0 +1,700 @@
+---
+title: "Midterm2"
+author: "Alissa Klinzmann"
+date: "November 19, 2015"
+output: html_document
+---
+
+
+Importing the general packages/dataframes that we use:
+
+```{r}
+# Other packages/dataframes to import:
+require(ggplot2)
+require(reshape)
+require(grid)
+data(diamonds)
+data(faithful)
+
+```
+
+Importing the Abalone Data:
+
+```{r}
+
+# From R-Data_Analysis file: Importing Abalone Data from UCI's website.
+uciaddress <- "http://archive.ics.uci.edu/ml/machine-learning-databases/"
+dataset <- "abalone/abalone.data"
+getdataset <- paste(uciaddress, dataset, sep="")
+abalone <- read.csv(getdataset)
+str(abalone)
+
+# Naming the columns:
+colnames(abalone) <- c("Gender","Length","Diameter",
+                       "Height", "Whole_wgt",
+                       "Shucked_wgt", "Viscera wgt",
+                       "Shell wgt", "Rings")
+str(abalone)
+
+```
+
+
+1. Take samples of 1%, 10% 25%, 50%, 80%, and 100% of the data. Calculate
+the min, max, mean and variance of the Whole_wgt column from each sample and store 
+in a dataframe. Name the mean row SampleMean, the other rows appropriately, and the 
+columns based on the % sample. 
+
+```{r}
+
+# Define new variable for dataframe and sample column so it is easier to switch between different dataframes later:
+df <- abalone
+
+# Creating a vector with the sample percents:
+percents <- c(.01, .10, .25, .50, .80, 1)  
+
+# Finding the size of the dataframe:
+size_df <- nrow(df)
+
+# Method for sampling the dataframe (code for "randomSample" from R_Data_Analysis Math-510 document):
+randomSample = function(dataframe,n,replacement) {     
+  return (dataframe[sample(nrow(dataframe), n, replace=replacement),]) }
+
+
+sampleList <- list() # Initializing list to append values from for loop.
+samplePercent <- list() # Initializing list to append the sampled data of Whole_wgt.
+
+# Taking samples:
+for(i in 1:6){
+  
+  # Generating random sample for each percent:
+  abSample <- randomSample(df, percents[i]*size_df, FALSE)  # percent[i]*size_df = number in sample set.
+  samplePercent[[i]] = abSample$Whole_wgt 
+  
+  # Calculations on the Whole_wgt column:
+  minAbSample <- min(abSample$Whole_wgt) # Min
+  maxAbSample <- max(abSample$Whole_wgt) # Max
+  meanAbSample <- mean(abSample$Whole_wgt) # Mean
+  varAbSample <- var(abSample$Whole_wgt) # Var
+  
+  # Creates vector of the calculated values
+  sampleData <- c(minAbSample, maxAbSample, meanAbSample, varAbSample)
+  
+  # Appends sampleData to sampleList
+  sampleList[[i]] <- sampleData
+    
+}
+
+# Storing data in new dataframe (size should be 4 rows, 6 columns)
+abSample_df <- data.frame(sampleList)
+
+# Naming the columns and rows in the new dataframe:
+colnames(abSample_df) <- c("Sample_1","Sample_10","Sample_25",
+                       "Sample_50", "Sample_80", "Sample_100")
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar")
+
+str(abSample_df)
+
+```
+
+2. Create a grid of histograms that contains all sample sizes.
+
+```{r}
+
+require(cowplot) # Allows to create a grid of histograms.
+
+# Plotting histograms of each sample size:
+# First save sample data into a dataframe in order to use ggplot for plotting histogram. Individual 
+# dataframes were created since data could not be stored in a single dataframe as sample sizes are not 
+# the same length.
+
+samp1 <- data.frame(samplePercent[1])
+samp2 <- data.frame(samplePercent[2])
+samp3 <- data.frame(samplePercent[3])
+samp4 <- data.frame(samplePercent[4])
+samp5 <- data.frame(samplePercent[5])
+samp6 <- data.frame(samplePercent[6])
+
+# Defining column names in each of the data frames since histogram requires aesthetics to be defined:
+colnames(samp1) <- c("Sample_1")
+colnames(samp2) <- c("Sample_10")
+colnames(samp3) <- c("Sample_25")
+colnames(samp4) <- c("Sample_50")
+colnames(samp5) <- c("Sample_80")
+colnames(samp6) <- c("Sample_100")
+
+# Creating the individual histograms for each sample size:
+hist01 <- ggplot(samp1, aes(x=Sample_1)) + geom_histogram()
+hist10 <- ggplot(samp2, aes(x=Sample_10)) + geom_histogram()
+hist25 <- ggplot(samp3, aes(x=Sample_25)) + geom_histogram()
+hist50 <- ggplot(samp4, aes(x=Sample_50)) + geom_histogram()
+hist80 <- ggplot(samp5, aes(x=Sample_80)) + geom_histogram()
+hist100 <- ggplot(samp6, aes(x=Sample_100)) + geom_histogram()
+
+# Using plot_grid from cowplot allows for a grid of histograms:
+plot_grid(hist01, hist10, hist25, hist50, hist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+```
+
+3. Implement a loop that takes 1,000 samples at each of the sample sizes in part(1) above (except the 100% sample. Calculate a mean at each iteration and store the results in a dataframe and name the columns. 
+
+```{r}
+
+meanSampleList <- list() # Initializing empty list to append the 1000 samples to.
+
+# Looping index from 1:5 in the percents list (do not need to include the 100%):
+for (i in 1:5){
+  # The replicate function is used to generate the 1000 random samples. Nested within, the mean function
+  # is applied on the sample function of the Whole_wgt column of the abalone data to obtain the
+  # mean at each iteration. Iterations are done for each of the sample percents.  
+  Means <- replicate(1000, mean(sample(df$Whole_wgt, percents[i]*size_df,replace=FALSE))) 
+  meanSampleList[[i]] <- Means # Appending the values to the meanSampleList
+}
+
+# Storing data in new dataframe:
+Means_df <- data.frame(meanSampleList)
+
+# Naming the columns in the new dataframe:
+colnames(Means_df) <- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80")
+
+str(Means_df)
+
+```
+
+4. Create another grid of histograms that contains the columns created in part(3) and 
+include the 100% sample from part(1).
+
+```{r}
+# Using ggplot and geom_histogram on the Mean_df dataframe:
+mHist01 <- ggplot(Means_df[1], aes(x = Sample_1)) + geom_histogram()
+mHist10 <- ggplot(Means_df[2], aes(x = Sample_10)) + geom_histogram()
+mHist25 <- ggplot(Means_df[3], aes(x = Sample_25)) + geom_histogram()
+mHist50 <- ggplot(Means_df[4], aes(x = Sample_50)) + geom_histogram()
+mHist80 <- ggplot(Means_df[5], aes(x = Sample_80)) + geom_histogram()
+
+# Note that we did not need to calculate for sample size = 100% as that is the entire dataframe.
+# For this we can just use the value calculated in part(1) which is defined as hist100.
+
+# Using the plot_grid in cowplot allows for a grid of histograms to be created:
+plot_grid(mHist01, mHist10, mHist25, mHist50, mHist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+```
+
+5. Calculate the min, max, mean and variance of each column from part(3) and of the total
+dataset (100% sample). Append to the dataframe in 1. 
+
+```{r}
+
+# Initializing lists to append for loop values to:
+ResampleMinList = list()
+ResampleMaxList = list()
+ResampleMeanList = list()
+ResampleVarList = list()
+
+colNames <- c(names((Means_df))) # Finds the column names of dataframe so we can use in for loop.
+
+for (i in colNames){
+
+    #print(i)
+    minMeansDFSample <- min(Means_df[[i]]) # Min called from each column of dataframe.
+    maxMeansDFSample <- max(Means_df[[i]]) # Max called from each column of dataframe.
+    meanMeansDFSample <- mean(Means_df[[i]]) # Mean called from each column of dataframe.
+    varMeansDFSample <- var(Means_df[[i]]) # Var called from each column of dataframe.
+    
+    # Appending calculated values to intialized lists:
+    ResampleMinList[[i]] <- minMeansDFSample
+    ResampleMaxList[[i]] <- maxMeansDFSample
+    ResampleMeanList[[i]] <- meanMeansDFSample
+    ResampleVarList[[i]] <- varMeansDFSample
+    
+}
+
+# To include the 100% Sample in the Resample lists, we can take the mean calculated in part(1) and 
+# add it the Resample lists so that the length of the list is the same number of rows as the dataframe,
+# which is in the 6th column of abSample_df by the way it was constructed.
+
+ResampleMinList <- c(ResampleMinList, abSample_df[[6]][1])
+ResampleMaxList <- c(ResampleMaxList, abSample_df[[6]][2])
+ResampleMeanList <- c(ResampleMeanList, abSample_df[[6]][3])
+ResampleVarList <- c(ResampleVarList, abSample_df[[6]][4])
+
+# Resetting the names of the lists so that they can be identified and added to dataframe:
+newNames<- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80", "Sample_100")
+ResampleMinList <- setNames(ResampleMinList, newNames)
+ResampleMaxList <- setNames(ResampleMaxList, newNames)
+ResampleMeanList <- setNames(ResampleMeanList, newNames)
+ResampleVarList <- setNames(ResampleVarList, newNames)
+
+# Appending Resample rows to dataframe in part(1) by using rbind function:
+abSample_df <- rbind(abSample_df, ResampleMinList, ResampleMaxList, ResampleMeanList, ResampleVarList)
+
+# Naming the rows:
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar",
+                            "ResampleMin", "ResampleMax", "ResampleMean", "ResampleVar")
+
+```
+
+
+6. Create a single histogram of the 100% data and overlay and label lines that represent the 1%, 10%,
+25%, 50%, and 80% SampleMean.
+
+```{r}
+
+# Creating new variable name for ou 100% histogram:
+hist_df <- hist100
+# print(hist_df)
+
+# Storing the SampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the SampleMean is in the 3rd row.
+SampleMeanVect <- c(abSample_df[[1]][3], abSample_df[[2]][3],abSample_df[[3]][3], abSample_df[[4]][3], abSample_df[[5]][3], abSample_df[[6]][3]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+mean_Label <- sprintf("%8.2f ", SampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above. (Refernce R_Data_Analsis Math-510 document.)
+hist_df + geom_histogram() + geom_vline(xintercept = SampleMeanVect, color = "green") + annotate("text", label = mean_Label, x = SampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+
+```
+
+7. Create a second histogram of the 100% data and overlay and label vertical lines that represent the 1%, 10%, 25%, 50%, and 80% ResampleMean.
+
+```{r}
+# Proceeding in the same manner as in part(6); however, this time with the 7th row of abSample_df since by construct that is where the ResampleMean is stored.
+
+# Creating new variable name for ou 100% histogram:
+rhist_df <- hist100
+# print(hist_df)
+
+# Storing the ResampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the ResampleMean is in the 7th row.
+ResampleMeanVect <- c(abSample_df[[1]][7], abSample_df[[2]][7],abSample_df[[3]][7], abSample_df[[4]][7], abSample_df[[5]][7], abSample_df[[6]][7]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+rmean_Label <- sprintf("%8.2f ", ResampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above. (Refernce R_Data_Analsis Math-510 document.)
+rhist_df + geom_histogram() + geom_vline(xintercept = ResampleMeanVect, color = "red") + annotate("text",label = rmean_Label, x = ResampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+# Note: Looking at the random sample generated, the values of the ResampleMeanVect may be really close together -- in this instance I am getting values contains the same first two decimals 0.82xxxxx. Because of this, there is seemingly only one vertical line appearing on my graph since the vertical lines for the different samples is approximately equal.
+# print(ResampleMeanVect)
+
+
+```
+
+
+8. Now execute your code on diamonds$carat and faithful$eruptions.
+
+This is the code for diamonds$carat which is the exact same code as the abalone data, but with the dataframe redined for diamonds.
+```{r}
+
+# Define new variable for dataframe and sample column so it is easier to switch between different dataframes later:
+df <- diamonds
+
+# Creating a vector with the sample percents:
+percents <- c(.01, .10, .25, .50, .80, 1)  
+
+# Finding the size of the dataframe:
+size_df <- nrow(df)
+
+# Method for sampling the dataframe:
+randomSample = function(dataframe,n,replacement) {     
+  return (dataframe[sample(nrow(dataframe), n, replace=replacement),]) }
+
+
+sampleList <- list() # Initializing list to append values from for loop.
+samplePercent <- list() # Initializing list to append the sampled data of carat
+
+# Taking samples:
+for(i in 1:6){
+  
+  # Generating random sample for each percent:
+  abSample <- randomSample(df, percents[i]*size_df, FALSE) 
+  samplePercent[[i]] = abSample$carat
+  
+  # Calculations on the carat column:
+  minAbSample <- min(abSample$carat) # Min
+  maxAbSample <- max(abSample$carat) # Max
+  meanAbSample <- mean(abSample$carat) # Mean
+  varAbSample <- var(abSample$carat) # Var
+  
+  # Creates vector of the calculated values
+  sampleData <- c(minAbSample, maxAbSample, meanAbSample, varAbSample)
+  
+  # Appends sampleData to sampleList
+  sampleList[[i]] <- sampleData
+    
+}
+
+# Storing data in new dataframe (size should be 4 rows, 6 columns)
+abSample_df <- data.frame(sampleList)
+
+# Naming the columns and rows in the new dataframe:
+colnames(abSample_df) <- c("Sample_1","Sample_10","Sample_25",
+                       "Sample_50", "Sample_80", "Sample_100")
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar")
+
+str(abSample_df)
+
+require(cowplot) # Allows to create a grid of histograms.
+
+# Plotting histograms of each sample size:
+# First save sample data into a dataframe to use ggplot to plot histogram. Made individual dataframes
+# since they could not be stored in a single dataframe as sample sizes are not the same length.
+
+samp1 <- data.frame(samplePercent[1])
+samp2 <- data.frame(samplePercent[2])
+samp3 <- data.frame(samplePercent[3])
+samp4 <- data.frame(samplePercent[4])
+samp5 <- data.frame(samplePercent[5])
+samp6 <- data.frame(samplePercent[6])
+
+# Defining column names in the data frames since histogram requires aesthetics to be defined:
+colnames(samp1) <- c("Sample_1")
+colnames(samp2) <- c("Sample_10")
+colnames(samp3) <- c("Sample_25")
+colnames(samp4) <- c("Sample_50")
+colnames(samp5) <- c("Sample_80")
+colnames(samp6) <- c("Sample_100")
+
+# Creating the individual histograms for each sample size:
+hist01 <- ggplot(samp1, aes(x=Sample_1)) + geom_histogram()
+hist10 <- ggplot(samp2, aes(x=Sample_10)) + geom_histogram()
+hist25 <- ggplot(samp3, aes(x=Sample_25)) + geom_histogram()
+hist50 <- ggplot(samp4, aes(x=Sample_50)) + geom_histogram()
+hist80 <- ggplot(samp5, aes(x=Sample_80)) + geom_histogram()
+hist100 <- ggplot(samp6, aes(x=Sample_100)) + geom_histogram()
+
+# Using plot_grid from cowplot allows for a grid of histograms:
+plot_grid(hist01, hist10, hist25, hist50, hist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+meanSampleList <- list() # Initializing empty list to append the 1000 samples to.
+
+# Looping from 1:5 in the percents list (do not need to include the 100%)
+for (i in 1:5){
+  # Using the replicate function 1000 times to generate new samples.
+  # Applying the sample function to carat of diamonds data for each value in the percent list.
+  # Then applying the mean function to generate the mean of each iteration.
+  Means <- replicate(1000, mean(sample(df$carat, percents[i]*size_df,replace=FALSE))) 
+  meanSampleList[[i]] <- Means # Appending the values to the meanSampleList
+}
+
+# Storing data in new dataframe:
+Means_df <- data.frame(meanSampleList)
+
+# Naming the columns in the new dataframe:
+colnames(Means_df) <- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80")
+
+str(Means_df)
+
+mHist01 <- ggplot(Means_df[1], aes(x = Sample_1)) + geom_histogram()
+mHist10 <- ggplot(Means_df[2], aes(x = Sample_10)) + geom_histogram()
+mHist25 <- ggplot(Means_df[3], aes(x = Sample_25)) + geom_histogram()
+mHist50 <- ggplot(Means_df[4], aes(x = Sample_50)) + geom_histogram()
+mHist80 <- ggplot(Means_df[5], aes(x = Sample_80)) + geom_histogram()
+
+# Note that we did not need to calculate for sample size = 100% as that is the entire dataframe.
+# For this we can just use the value calculated in part(1) which is defined as hist100.
+
+# Using plot_grid in cowplot allows for a grid of histograms
+plot_grid(mHist01, mHist10, mHist25, mHist50, mHist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+# Initializing lists to append for loop values to:
+ResampleMinList = list()
+ResampleMaxList = list()
+ResampleMeanList = list()
+ResampleVarList = list()
+
+colNames <- c(names((Means_df))) # Finds the column names of dataframe so we can use in for loop.
+
+for (i in colNames){
+
+    #print(i)
+    minMeansDFSample <- min(Means_df[[i]]) # Min called from each column of dataframe.
+    maxMeansDFSample <- max(Means_df[[i]]) # Max called from each column of dataframe.
+    meanMeansDFSample <- mean(Means_df[[i]]) # Mean called from each column of dataframe.
+    varMeansDFSample <- var(Means_df[[i]]) # Var called from each column of dataframe.
+    
+    # Appending calculated values to intialized lists:
+    ResampleMinList[[i]] <- minMeansDFSample
+    ResampleMaxList[[i]] <- maxMeansDFSample
+    ResampleMeanList[[i]] <- meanMeansDFSample
+    ResampleVarList[[i]] <- varMeansDFSample
+    
+}
+
+# To include the 100% Sample in the Resample lists, we can take the mean calculated in part(1) and 
+# add it the Resample lists so that the length of the list is the same number of rows as the dataframe, which is in the 6th column of abSample_df by the way it was constructed.
+
+ResampleMinList <- c(ResampleMinList, abSample_df[[6]][1])
+ResampleMaxList <- c(ResampleMaxList, abSample_df[[6]][2])
+ResampleMeanList <- c(ResampleMeanList, abSample_df[[6]][3])
+ResampleVarList <- c(ResampleVarList, abSample_df[[6]][4])
+
+# Resetting the names of the lists so that they can be identified and added to dataframe:
+newNames<- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80", "Sample_100")
+ResampleMinList <- setNames(ResampleMinList, newNames)
+ResampleMaxList <- setNames(ResampleMaxList, newNames)
+ResampleMeanList <- setNames(ResampleMeanList, newNames)
+ResampleVarList <- setNames(ResampleVarList, newNames)
+
+# Appending Resample rows to dataframe in part(1) by using rbind function:
+abSample_df <- rbind(abSample_df, ResampleMinList, ResampleMaxList, ResampleMeanList, ResampleVarList)
+
+# Naming the rows:
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar",
+                            "ResampleMin", "ResampleMax", "ResampleMean", "ResampleVar")
+
+# Creating new variable name for ou 100% histogram:
+hist_df <- hist100
+# print(hist_df)
+
+# Storing the SampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the SampleMean is in the 3rd row.
+SampleMeanVect <- c(abSample_df[[1]][3], abSample_df[[2]][3],abSample_df[[3]][3], abSample_df[[4]][3], abSample_df[[5]][3], abSample_df[[6]][3]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+mean_Label <- sprintf("%8.2f ", SampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above. (Refernce R_Data_Analsis Math-510 document.)
+hist_df + geom_histogram() + geom_vline(xintercept = SampleMeanVect, color = "green") + annotate("text", label = mean_Label, x = SampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+
+# Proceeding in the same manner as in part(6); however, this time with the 7th row of abSample_df since by construct that is where the ResampleMean is stored.
+
+# Creating new variable name for ou 100% histogram:
+rhist_df <- hist100
+# print(hist_df)
+
+# Storing the ResampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the ResampleMean is in the 7th row.
+ResampleMeanVect <- c(abSample_df[[1]][7], abSample_df[[2]][7],abSample_df[[3]][7], abSample_df[[4]][7], abSample_df[[5]][7], abSample_df[[6]][7]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+rmean_Label <- sprintf("%8.2f ", ResampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above.
+rhist_df + geom_histogram() + geom_vline(xintercept = ResampleMeanVect, color = "red") + annotate("text",label = rmean_Label, x = ResampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+# Note: Looking at the random sample generated, the values of the ResampleMeanVect may be really close together -- in this instance I am getting values contains the same first two decimals 0.82xxxxx. Because of this, there is seemingly only one vertical line appearing on my graph since the vertical lines for the different samples is approximately equal.
+# print(ResampleMeanVect)
+
+```
+
+This is the code for faithful$eruptions which is the exact same code as the abalone data, but with the dataframe redined for faithful.
+```{r}
+
+# Define new variable for dataframe and sample column so it is easier to switch between different dataframes later:
+df <- faithful
+
+# Creating a vector with the sample percents:
+percents <- c(.01, .10, .25, .50, .80, 1)  
+
+# Finding the size of the dataframe:
+size_df <- nrow(df)
+
+# Method for sampling the dataframe:
+randomSample = function(dataframe,n,replacement) {     
+  return (dataframe[sample(nrow(dataframe), n, replace=replacement),]) }
+
+
+sampleList <- list() # Initializing list to append values from for loop.
+samplePercent <- list() # Initializing list to append the sampled data of eruptions
+
+# Taking samples:
+for(i in 1:6){
+  
+  # Generating random sample for each percent:
+  abSample <- randomSample(df, percents[i]*size_df, FALSE) 
+  samplePercent[[i]] = abSample$eruptions
+  
+  # Calculations on the eruptions column:
+  minAbSample <- min(abSample$eruptions) # Min
+  maxAbSample <- max(abSample$eruptions) # Max
+  meanAbSample <- mean(abSample$eruptions) # Mean
+  varAbSample <- var(abSample$eruptions) # Var
+  
+  # Creates vector of the calculated values
+  sampleData <- c(minAbSample, maxAbSample, meanAbSample, varAbSample)
+  
+  # Appends sampleData to sampleList
+  sampleList[[i]] <- sampleData
+    
+}
+
+# Storing data in new dataframe (size should be 4 rows, 6 columns)
+abSample_df <- data.frame(sampleList)
+
+# Naming the columns and rows in the new dataframe:
+colnames(abSample_df) <- c("Sample_1","Sample_10","Sample_25",
+                       "Sample_50", "Sample_80", "Sample_100")
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar")
+
+str(abSample_df)
+
+require(cowplot) # Allows to create a grid of histograms.
+
+# Plotting histograms of each sample size:
+# First save sample data into a dataframe to use ggplot to plot histogram. Made individual dataframes
+# since they could not be stored in a single dataframe as sample sizes are not the same length.
+
+samp1 <- data.frame(samplePercent[1])
+samp2 <- data.frame(samplePercent[2])
+samp3 <- data.frame(samplePercent[3])
+samp4 <- data.frame(samplePercent[4])
+samp5 <- data.frame(samplePercent[5])
+samp6 <- data.frame(samplePercent[6])
+
+# Defining column names in the data frames since histogram requires aesthetics to be defined:
+colnames(samp1) <- c("Sample_1")
+colnames(samp2) <- c("Sample_10")
+colnames(samp3) <- c("Sample_25")
+colnames(samp4) <- c("Sample_50")
+colnames(samp5) <- c("Sample_80")
+colnames(samp6) <- c("Sample_100")
+
+# Creating the individual histograms for each sample size:
+hist01 <- ggplot(samp1, aes(x=Sample_1)) + geom_histogram()
+hist10 <- ggplot(samp2, aes(x=Sample_10)) + geom_histogram()
+hist25 <- ggplot(samp3, aes(x=Sample_25)) + geom_histogram()
+hist50 <- ggplot(samp4, aes(x=Sample_50)) + geom_histogram()
+hist80 <- ggplot(samp5, aes(x=Sample_80)) + geom_histogram()
+hist100 <- ggplot(samp6, aes(x=Sample_100)) + geom_histogram()
+
+# Using plot_grid from cowplot allows for a grid of histograms:
+plot_grid(hist01, hist10, hist25, hist50, hist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+
+meanSampleList <- list() # Initializing empty list to append the 1000 samples to.
+
+# Looping from 1:5 in the percents list (do not need to include the 100%)
+for (i in 1:5){
+  # Using the replicate function 1000 times to generate new samples.
+  # Applying the sample function to the eruptions in the faithful data for each value in the percent 
+  # list. Then applying the mean function to generate the mean of each iteration.
+  Means <- replicate(1000, mean(sample(df$eruptions, percents[i]*size_df,replace=FALSE))) 
+  meanSampleList[[i]] <- Means # Appending the values to the meanSampleList
+}
+
+# Storing data in new dataframe:
+Means_df <- data.frame(meanSampleList)
+
+# Naming the columns in the new dataframe:
+colnames(Means_df) <- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80")
+
+str(Means_df)
+
+mHist01 <- ggplot(Means_df[1], aes(x = Sample_1)) + geom_histogram()
+mHist10 <- ggplot(Means_df[2], aes(x = Sample_10)) + geom_histogram()
+mHist25 <- ggplot(Means_df[3], aes(x = Sample_25)) + geom_histogram()
+mHist50 <- ggplot(Means_df[4], aes(x = Sample_50)) + geom_histogram()
+mHist80 <- ggplot(Means_df[5], aes(x = Sample_80)) + geom_histogram()
+
+# Note that we did not need to calculate for sample size = 100% as that is the entire dataframe.
+# For this we can just use the value calculated in part(1) which is defined as hist100.
+
+# Using plot_grid in cowplot allows for a grid of histograms
+plot_grid(mHist01, mHist10, mHist25, mHist50, mHist80, hist100,
+          align='h', labels = c("1% Sample", "10% Sample", "25% Sample", "50% Sample", "80% Sample",
+                                "100% Sample"))
+
+
+# Initializing lists to append for loop values to:
+ResampleMinList = list()
+ResampleMaxList = list()
+ResampleMeanList = list()
+ResampleVarList = list()
+
+colNames <- c(names((Means_df))) # Finds the column names of dataframe so we can use in for loop.
+
+for (i in colNames){
+
+    #print(i)
+    minMeansDFSample <- min(Means_df[[i]]) # Min called from each column of dataframe.
+    maxMeansDFSample <- max(Means_df[[i]]) # Max called from each column of dataframe.
+    meanMeansDFSample <- mean(Means_df[[i]]) # Mean called from each column of dataframe.
+    varMeansDFSample <- var(Means_df[[i]]) # Var called from each column of dataframe.
+    
+    # Appending calculated values to intialized lists:
+    ResampleMinList[[i]] <- minMeansDFSample
+    ResampleMaxList[[i]] <- maxMeansDFSample
+    ResampleMeanList[[i]] <- meanMeansDFSample
+    ResampleVarList[[i]] <- varMeansDFSample
+    
+}
+
+# To include the 100% Sample in the Resample lists, we can take the mean calculated in part(1) and 
+# add it the Resample lists so that the length of the list is the same number of rows as the dataframe, which is in the 6th column of abSample by the way it was constructed.
+
+ResampleMinList <- c(ResampleMinList, abSample_df[[6]][1])
+ResampleMaxList <- c(ResampleMaxList, abSample_df[[6]][2])
+ResampleMeanList <- c(ResampleMeanList, abSample_df[[6]][3])
+ResampleVarList <- c(ResampleVarList, abSample_df[[6]][4])
+
+# Resetting the names of the lists so that they can be identified and added to dataframe:
+newNames<- c("Sample_1","Sample_10","Sample_25", "Sample_50", "Sample_80", "Sample_100")
+ResampleMinList <- setNames(ResampleMinList, newNames)
+ResampleMaxList <- setNames(ResampleMaxList, newNames)
+ResampleMeanList <- setNames(ResampleMeanList, newNames)
+ResampleVarList <- setNames(ResampleVarList, newNames)
+
+# Appending Resample rows to dataframe in part(1) by using rbind function:
+abSample_df <- rbind(abSample_df, ResampleMinList, ResampleMaxList, ResampleMeanList, ResampleVarList)
+
+# Naming the rows:
+rownames(abSample_df)  <- c("SampleMin","SampleMax","SampleMean", "SampleVar",
+                            "ResampleMin", "ResampleMax", "ResampleMean", "ResampleVar")
+
+
+# Creating new variable name for ou 100% histogram:
+hist_df <- hist100
+# print(hist_df)
+
+# Storing the SampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the SampleMean is in the 3rd row.
+SampleMeanVect <- c(abSample_df[[1]][3], abSample_df[[2]][3],abSample_df[[3]][3], abSample_df[[4]][3], abSample_df[[5]][3], abSample_df[[6]][3]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+mean_Label <- sprintf("%8.2f ", SampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above.
+hist_df + geom_histogram() + geom_vline(xintercept = SampleMeanVect, color = "green") + annotate("text", label = mean_Label, x = SampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+
+# Proceeding in the same manner as in part(6); however, this time with the 7th row of abSample_df since by construct that is where the ResampleMean is stored.
+
+# Creating new variable name for ou 100% histogram:
+rhist_df <- hist100
+# print(hist_df)
+
+# Storing the ResampleMean values in a vector to then be called by geom_vline:
+# By construct of dataframe, the ResampleMean is in the 7th row.
+ResampleMeanVect <- c(abSample_df[[1]][7], abSample_df[[2]][7],abSample_df[[3]][7], abSample_df[[4]][7], abSample_df[[5]][7], abSample_df[[6]][7]) # Pulls from dataframe the col then the row.
+
+# Defining labels:
+rmean_Label <- sprintf("%8.2f ", ResampleMeanVect)
+
+# To overlay the lines of the SampleMean data for the different sample sizes, add the geom_vline with the xintercept defined as SampleMeanVect created above.
+rhist_df + geom_histogram() + geom_vline(xintercept = ResampleMeanVect, color = "red") + annotate("text",label = rmean_Label, x = ResampleMeanVect, hjust = 0, y = Inf, vjust = 2, color = "red", angle = -90)
+
+# Note: Looking at the random sample generated, the values of the ResampleMeanVect may be really close together -- in this instance I am getting values contains the same first two decimals 0.82xxxxx. Because of this, there is seemingly only one vertical line appearing on my graph since the vertical lines for the different samples is approximately equal.
+# print(ResampleMeanVect)
+
+
+```
+
+9. Provide a bried explanation of what you observe in the measures and histograms as it relates to sample size and resampling.
+
+```{r}
+# In choosing different sample sizes for the data, we see that as the sample size increases, so does the accuracy. In this assignment we studied specifically sampling of the "mean" in the dataframe. For the sample size of 1%, the mean was the least accurate when comparing it to the actual mean (the mean of the 100% sample). This reveals that when choosing a sample size too small, the results will not be able to appropriately quantify relevant information about the total population since too much of the data is not being included. However, when looking at the ResampleMean, by taking 1,000 samples at each sample size, the random sample generated captures more of the total sample's information since each new random sample generates a different sample set than the previous random sample (ideally, unless the random sample generator is programmed to chose values based on a particular algorithm). Thus by taking the mean at each of the calculated Resamples, the results are quite accurate to the actual mean. 
+
+```
